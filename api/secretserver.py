@@ -8,7 +8,7 @@ app = Flask(__name__)
 def secret():
 
     return (
-        "// please dont steal my keys"
+        "/* please dont steal my keys */"
         + "const sconf = {"
         + " host: " + repr(os.environ["KV_REST_API_URL"]) + ','
         + " token: " + repr(os.environ["KV_REST_API_TOKEN"])
