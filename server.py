@@ -5,6 +5,10 @@ app = Flask(__name__)
 
 @app.route('/secret.js')
 def keys():
+
+    if 'secret.js' in os.listdir():
+        return send_from_directory('.', 'secret.js')
+
     return ( ""
         + "   /* Please dont steal my keys */  "
         + "   const sconf = {"
