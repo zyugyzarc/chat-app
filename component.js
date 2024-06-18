@@ -1,4 +1,6 @@
 
+// BANZAI.js
+
 // function stolen from stackoverflow: https://stackoverflow.com/a/8809472
 function generateUUID() { // Public Domain/MIT
     var d = new Date().getTime();//Timestamp
@@ -33,6 +35,7 @@ class Component{
 		}
 
 		this._state = {}
+		this.cssvars_classes = []
 		this.cssvars = {}
 		this.componentID = 'component-'+generateUUID()
 		this.name = name
@@ -99,12 +102,40 @@ class Component{
 
 		const style = document.createElement('style');
 		let css = layout.style
+			css = css.replace(/<.*?>/g, (f, o, s)=>component.setCssJsCallback(f, o, s))
 			css = css.replace(/{{this\.state\.(.*?)}}/g, "var(--$1)")
 			css = css.replace(/{{this\.cssvars\.(.*?)}}/g, "var(--$1)")
 			css = css.replace(/this/g, '#'+this.componentID);
 		    css = css.replace(/#[a-z0-9]*?\.(state|cssvars)\./g, '')
+
 	    style.textContent = css
 	    document.head.append(style);
+	}
+
+	setCssJsCallback(strfn, startpos, css){
+
+		console.log(arguments)
+
+		strfn = strfn.substring(1, strfn.length - 1)
+
+		let classname = 'class-' + strfn.replace(/[^a-zA-Z]/g, '-') + '-' + generateUUID()
+			classname = classname.replace(/this/g, 't')
+
+		let callback = (new Function("return " + strfn)).bind(this)
+
+		let selector = css.lastIndexOf('\n', startpos)
+		selector = selector>0?selector:0;
+
+		selector = css.substring(selector, startpos)
+		selector = selector.replace(/this/g, `#${this.componentID}`)
+
+		this.cssvars_classes.push({
+			classname: classname,
+			selector: selector,
+			callback: callback
+		})
+
+		return "." + classname
 	}
 
 	elem(q){
@@ -113,27 +144,48 @@ class Component{
 
 	update(){
 
-		this.dom.querySelectorAll(`[childof=${this.componentID}]`).forEach(e=>{
+		// handle all the dynamic elements
 
-			if(e.attributes.dynamic){
+		this.dom.querySelectorAll(`[childof=${this.componentID}][dynamic]`).forEach(e=>{
 
-				if(e != this.dom && e.attributes.component){
-					// dont do anything here, this is another component's area to mess with	
-				}
-				else{
+			if(e != this.dom && e.attributes.component){
+				// dont do anything here, its another component
+			}
 
-					// too lazy to make a template engine, also sanitize your inputs
-					let template = e.attributes.dynamic.value
-						template = template.replace(/{{(.*?)}}/g, "\${$1}")
+			else{
 
-					let templated = new Function("return `" + template + "`").call(this)
-					e.innerHTML = templated
-				}
+				// too lazy to make a template engine, also sanitize your inputs
+				let template = e.attributes.dynamic.value
+					template = template.replace(/{{(.*?)}}/g, "\${$1}")
 
+				let templated = new Function("return `" + template + "`").call(this)
+				e.innerHTML = templated
 			}
 
 		})
 
+
+		// handle all the dynamic styles
+
+		for(let entry of this.cssvars_classes){
+
+			console.log(entry)
+
+			if(entry.callback()){
+				this.dom.querySelectorAll(entry.selector).forEach(e=>{
+					e.classList.add(entry.classname)
+				})
+			}else{
+				this.dom.querySelectorAll(entry.selector).forEach(e=>{
+					e.classList.remove(entry.classname)
+				})
+			}
+
+		}
+
+		// handle the cssvars
+
+		/*
 
 		let s = "";
 		for(const prop in this.state){
@@ -145,6 +197,8 @@ class Component{
 		}
 
 		this.dom.style = s
+
+		*/
 
 		if(this.onupdate){
 			this.onupdate()
