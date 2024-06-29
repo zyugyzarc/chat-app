@@ -91,7 +91,7 @@ class App extends Component{
 		let button = document.createElement('button')
 		button.onclick = ()=>{t.chat.reconnect()}
 		button.innerHTML = 'Search peers'
-		this.elem('button').setAttribute('disabled')
+		this.elem('button').setAttribute('disabled', 'true')
 		this.elem('.panel').appendChild(button)
 	}
 
@@ -180,7 +180,20 @@ class Chat extends Component{
 	}
 
 	onevent(data){
-		if(data.type === 'system-message'){
+
+		if(data.type == 'ping'){
+
+			let now = (performance.now() + performance.timeOrigin);
+
+			let rtt = now - data.now;
+
+			this.node.broadcast({
+				author: this.node.id,
+				broadcast: true,
+				message: `pinged by ${data.author}: RTT ${rtt} ms`
+			})
+
+		}else if(data.type === 'system-message'){
 			this.state.chatlog += data.message + '<br>'
 		}
 		else{
@@ -189,13 +202,23 @@ class Chat extends Component{
 	}
 
 	send(msgtype){
+
+		let m = this.elem('#msgbox').value
+
+		if(m === 'ping'){
+			this.node.broadcast({
+				author: this.node.id,
+				type: 'ping',
+				now: (performance.now() + performance.timeOrigin)
+			})
+		}
   
-		this.state.chatlog += `${this.node.id}: ${this.elem('#msgbox').value}<br>`
+		this.state.chatlog += `${this.node.id}: ${m}<br>`
 
 		this.node.broadcast({
 			author: this.node.id,
 			broadcast: true,
-			message: this.elem('#msgbox').value})
+			message: m})
 	}
 
 }

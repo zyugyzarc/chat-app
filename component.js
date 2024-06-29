@@ -1,5 +1,5 @@
 
-// BANZAI.js
+
 
 // function stolen from stackoverflow: https://stackoverflow.com/a/8809472
 function generateUUID() { // Public Domain/MIT
